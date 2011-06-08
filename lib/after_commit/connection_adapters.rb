@@ -2,18 +2,35 @@ module AfterCommit
   module ConnectionAdapters
     def self.included(base)
       base.class_eval do
-        def transaction_with_callback(*args, &block)
-          # @disable_rollback is set to false at the start of the
-          # outermost call to #transaction.  After committing, it is
-          # set to true to prevent exceptions causing a spurious
-          # rollback.
-          outermost_call = @disable_rollback.nil?
-          @disable_rollback = false if outermost_call
-          transaction_without_callback(*args, &block)
-        ensure
-          @disable_rollback = nil if outermost_call
+
+        if respond_to?(:transaction)
+          def transaction_with_callback(*args, &block)
+            # @disable_rollback is set to false at the start of the
+            # outermost call to #transaction.  After committing, it is
+            # set to true to prevent exceptions causing a spurious
+            # rollback.
+            outermost_call = @disable_rollback.nil?
+            @disable_rollback = false if outermost_call
+            transaction_without_callback(*args, &block)
+          ensure
+            @disable_rollback = nil if outermost_call
+          end
+          alias_method_chain :transaction, :callback
+
+        elsif respond_to?(:begin_db_transaction)
+          def begin_db_transaction_with_callback(*args, &block)
+            # @disable_rollback is set to false at the start of the
+            # outermost call to #transaction.  After committing, it is
+            # set to true to prevent exceptions causing a spurious
+            # rollback.
+            outermost_call = @disable_rollback.nil?
+            @disable_rollback = false if outermost_call
+            begin_db_transaction_without_callback(*args, &block)
+          ensure
+            @disable_rollback = nil if outermost_call
+          end
+          alias_method_chain :begin_db_transaction, :callback
         end
-        alias_method_chain :transaction, :callback
 
         # The commit_db_transaction method gets called when the outermost
         # transaction finishes and everything inside commits. We want to
@@ -53,7 +70,7 @@ module AfterCommit
             AfterCommit.cleanup(self)
             decrement_transaction_pointer unless @already_decremented
           end
-        end 
+        end
         alias_method_chain :commit_db_transaction, :callback
 
         # In the event the transaction fails and rolls back, nothing inside
