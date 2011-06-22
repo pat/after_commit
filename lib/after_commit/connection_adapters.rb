@@ -3,7 +3,7 @@ module AfterCommit
     def self.included(base)
       base.class_eval do
 
-        if respond_to?(:transaction)
+        if method_defined?(:transaction)
           def transaction_with_callback(*args, &block)
             # @disable_rollback is set to false at the start of the
             # outermost call to #transaction.  After committing, it is
@@ -17,7 +17,7 @@ module AfterCommit
           end
           alias_method_chain :transaction, :callback
 
-        elsif respond_to?(:begin_db_transaction)
+        elsif method_defined?(:begin_db_transaction)
           def begin_db_transaction_with_callback(*args, &block)
             # @disable_rollback is set to false at the start of the
             # outermost call to #transaction.  After committing, it is
