@@ -52,8 +52,7 @@ module AfterCommit
       :committed_records_on_save,
       :committed_records_on_destroy
     ].each do |collection|
-      Thread.current[collection]                        ||= {}
-      Thread.current[collection][connection.old_transaction_key] = []
+      Thread.current[collection] && Thread.current[collection].delete(connection.old_transaction_key)
     end
   end
   
@@ -68,7 +67,7 @@ module AfterCommit
   
   def self.collection(collection, connection)
     Thread.current[collection] ||= {}
-    Thread.current[collection][connection.old_transaction_key] ||= []
+    Thread.current[collection][connection.old_transaction_key] || []
   end
 end
 

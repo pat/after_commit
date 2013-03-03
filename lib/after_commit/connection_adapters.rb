@@ -39,8 +39,8 @@ module AfterCommit
         # callback fired.
         def commit_db_transaction_with_callback
           increment_transaction_pointer
-          result    = nil
           begin
+            result = nil
             trigger_before_commit_callbacks
             trigger_before_commit_on_create_callbacks
             trigger_before_commit_on_update_callbacks
@@ -56,19 +56,9 @@ module AfterCommit
             trigger_after_commit_on_save_callbacks
             trigger_after_commit_on_destroy_callbacks
             result
-          rescue
-            # Need to decrement the transaction pointer before calling
-            # rollback... to ensure it is not incremented twice
-            unless @disable_rollback
-              decrement_transaction_pointer
-              @already_decremented = true
-            end
-            
-            # We still want to raise the exception.
-            raise
           ensure
             AfterCommit.cleanup(self)
-            decrement_transaction_pointer unless @already_decremented
+            decrement_transaction_pointer
           end
         end
         alias_method_chain :commit_db_transaction, :callback
@@ -89,7 +79,6 @@ module AfterCommit
             AfterCommit.cleanup(self)
             decrement_transaction_pointer
           end
-          decrement_transaction_pointer
         end
         alias_method_chain :rollback_db_transaction, :callback
         
