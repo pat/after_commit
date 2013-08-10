@@ -12,7 +12,7 @@ if defined? ActiveSupport::Callbacks
         
         base::CallbackChain.class_eval do
           def have_callback?
-            any? &:have_callback?
+            any? {|c| c.have_callback?}
           end
         end
         
