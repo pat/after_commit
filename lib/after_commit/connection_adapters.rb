@@ -2,35 +2,18 @@ module AfterCommit
   module ConnectionAdapters
     def self.included(base)
       base.class_eval do
-
-        if method_defined?(:transaction)
-          def transaction_with_callback(*args, &block)
-            # @disable_rollback is set to false at the start of the
-            # outermost call to #transaction.  After committing, it is
-            # set to true to prevent exceptions causing a spurious
-            # rollback.
-            outermost_call = @disable_rollback.nil?
-            @disable_rollback = false if outermost_call
-            transaction_without_callback(*args, &block)
-          ensure
-            @disable_rollback = nil if outermost_call
-          end
-          alias_method_chain :transaction, :callback
-
-        elsif method_defined?(:begin_db_transaction)
-          def begin_db_transaction_with_callback(*args, &block)
-            # @disable_rollback is set to false at the start of the
-            # outermost call to #transaction.  After committing, it is
-            # set to true to prevent exceptions causing a spurious
-            # rollback.
-            outermost_call = @disable_rollback.nil?
-            @disable_rollback = false if outermost_call
-            begin_db_transaction_without_callback(*args, &block)
-          ensure
-            @disable_rollback = nil if outermost_call
-          end
-          alias_method_chain :begin_db_transaction, :callback
+        def transaction_with_callback(*args, &block)
+          # @disable_rollback is set to false at the start of the
+          # outermost call to #transaction.  After committing, it is
+          # set to true to prevent exceptions causing a spurious
+          # rollback.
+          outermost_call = @disable_rollback.nil?
+          @disable_rollback = false if outermost_call
+          transaction_without_callback(*args, &block)
+        ensure
+          @disable_rollback = nil if outermost_call
         end
+        alias_method_chain :transaction, :callback
 
         # The commit_db_transaction method gets called when the outermost
         # transaction finishes and everything inside commits. We want to
@@ -63,7 +46,7 @@ module AfterCommit
               decrement_transaction_pointer
               @already_decremented = true
             end
-            
+
             # We still want to raise the exception.
             raise
           ensure
@@ -92,51 +75,51 @@ module AfterCommit
           decrement_transaction_pointer
         end
         alias_method_chain :rollback_db_transaction, :callback
-        
+
         def unique_transaction_key
           [object_id, transaction_pointer]
         end
-        
+
         def old_transaction_key
           [object_id, transaction_pointer - 1]
         end
-        
+
         protected
-        
+
         def trigger_before_commit_callbacks
           AfterCommit.records(self).each do |record|
             record.send :callback, :before_commit
-          end 
+          end
         end
 
         def trigger_before_commit_on_create_callbacks
           AfterCommit.created_records(self).each do |record|
             record.send :callback, :before_commit_on_create
-          end 
+          end
         end
-      
+
         def trigger_before_commit_on_update_callbacks
           AfterCommit.updated_records(self).each do |record|
             record.send :callback, :before_commit_on_update
-          end 
+          end
         end
-      
+
         def trigger_before_commit_on_save_callbacks
           AfterCommit.saved_records(self).each do |record|
             record.send :callback, :before_commit_on_save
           end
         end
-        
+
         def trigger_before_commit_on_destroy_callbacks
           AfterCommit.destroyed_records(self).each do |record|
             record.send :callback, :before_commit_on_destroy
-          end 
+          end
         end
 
         def trigger_before_rollback_callbacks
           AfterCommit.records(self).each do |record|
             record.send :callback, :before_rollback
-          end 
+          end
         end
 
         def trigger_after_commit_callbacks
@@ -146,7 +129,7 @@ module AfterCommit
             record.send :callback, :after_commit
           end
         end
-            
+
         def trigger_after_commit_on_create_callbacks
           # Trigger the after_commit_on_create callback for each of the committed
           # records.
@@ -154,7 +137,7 @@ module AfterCommit
             record.send :callback, :after_commit_on_create
           end
         end
-      
+
         def trigger_after_commit_on_update_callbacks
           # Trigger the after_commit_on_update callback for each of the committed
           # records.
@@ -162,7 +145,7 @@ module AfterCommit
             record.send :callback, :after_commit_on_update
           end
         end
-      
+
         def trigger_after_commit_on_save_callbacks
           # Trigger the after_commit_on_save callback for each of the committed
           # records.
@@ -170,7 +153,7 @@ module AfterCommit
             record.send :callback, :after_commit_on_save
           end
         end
-        
+
         def trigger_after_commit_on_destroy_callbacks
           # Trigger the after_commit_on_destroy callback for each of the committed
           # records.
@@ -184,24 +167,24 @@ module AfterCommit
           # records.
           AfterCommit.records(self).each do |record|
             record.send :callback, :after_rollback
-          end 
+          end
         end
-        
+
         def transaction_pointer
           Thread.current[:after_commit_pointer] ||= 0
         end
-        
+
         def increment_transaction_pointer
           Thread.current[:after_commit_pointer] ||= 0
           Thread.current[:after_commit_pointer] += 1
         end
-        
+
         def decrement_transaction_pointer
           Thread.current[:after_commit_pointer] ||= 0
           Thread.current[:after_commit_pointer] -= 1
         end
 
-      end 
-    end 
+      end
+    end
   end
 end
