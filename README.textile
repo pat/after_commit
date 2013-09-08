@@ -15,10 +15,12 @@ The following callbacks are provided:
 * before_commit
 * before_commit_on_create
 * before_commit_on_update
+* before_commit_on_save
 * before_commit_on_destroy
 * after_commit
 * after_commit_on_create
 * after_commit_on_update
+* after_commit_on_save
 * after_commit_on_destroy
 * before_rollback
 * after_rollback
