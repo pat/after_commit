@@ -77,7 +77,13 @@ module AfterCommit
         # should recieve the after_commit callback, but do fire the after_rollback
         # callback for each record that failed to be committed.
         def rollback_db_transaction_with_callback
-          return if @disable_rollback
+          if @disable_rollback
+            # if rollback is called and @disable_rollback is true, then ActiveRecord is trying to
+            # rollback from an exception in an `after_commit` block. Only rollback once by checking
+            # to see if we are back at the top level `after_commit` transaction
+           rollback_db_transaction_without_callback if transaction_pointer == 0
+           return
+          end
           increment_transaction_pointer
           begin
             result = nil
